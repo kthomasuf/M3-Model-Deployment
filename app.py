@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+
 from flask import Flask, request, jsonify, render_template
 import joblib
 import numpy as np
@@ -6,8 +9,6 @@ import json
 import requests
 import io
 import base64
-import matplotlib
-matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 app = Flask(__name__)
