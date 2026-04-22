@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify, render_template
 import joblib
 import numpy as np
 import pandas as pd
-from tensorflow import keras
 import json
 import requests
 import io
