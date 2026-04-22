@@ -1,0 +1,42 @@
+.state-path {
+  fill: #DBEAFE;
+  stroke: #fff;
+  stroke-width: 0.8px;
+  cursor: pointer;
+  transition: fill 0.15s ease;
+}
+
+.state-path:hover {
+  fill: #93C5FD;
+}
+
+.state-path.selected {
+  fill: #0D6EFD;
+}
+
+#map-container {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+#map-svg {
+  width: 100%;
+  height: auto;
+  max-height: 400px;
+}
+
+#selected-display {
+  font-size: 0.875rem;
+  color: #64748B;
+  min-height: 24px;
+}
+
+#selected-display span {
+  background: #CFE2FF;
+  color: #084298;
+  font-weight: 500;
+  padding: 2px 12px;
+  border-radius: 99px;
+}

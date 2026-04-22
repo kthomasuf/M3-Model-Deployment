@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='tool.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+  </head>
+  <body>
+    <div class="centered">
+      <div class="main-container">
+        <div class="left-container">
+          <div class="title-container">
+            <div class="inputs-title">Respiratory Hospitalization Prediction Tool</div>
+            <button type="button" class="btn btn-outline-primary" onclick="window.location.href='/visualizations'">
+              Visualizations
+            </button>
+          </div>
+          <div class="inputs-sub-title">Use local AQI data to forecast respiratory hospitalizations in the coming week</div>
+          <div class="date-card">
+            <div class="date-title">Today's Date:</div>
+            <input type="date" class="date-input form-control" name="date-input">
+          </div>
+          <div class="week-card">
+            <div class="week-title" name="w1-label">Week of --</div>
+            <div class="week-sub">Enter each day's AQI value (Leave blank if not reported)</div>
+            <div class="days-grid">
+              <div class="day-cell"><label>Mon</label><input type="number" name="aqi_w1_1" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Tue</label><input type="number" name="aqi_w1_2" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Wed</label><input type="number" name="aqi_w1_3" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Thu</label><input type="number" name="aqi_w1_4" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Fri</label><input type="number" name="aqi_w1_5" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Sat</label><input type="number" name="aqi_w1_6" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Sun</label><input type="number" name="aqi_w1_7" min="0" max="500" class="day-input"></div>
+            </div>
+          </div>
+          <div class="week-card">
+            <div class="week-title" name="w2-label">Week of --</div>
+            <div class="week-sub">Enter each day's AQI value (Leave blank if not reported)</div>
+            <div class="days-grid">
+              <div class="day-cell"><label>Mon</label><input type="number" name="aqi_w2_1" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Tue</label><input type="number" name="aqi_w2_2" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Wed</label><input type="number" name="aqi_w2_3" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Thu</label><input type="number" name="aqi_w2_4" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Fri</label><input type="number" name="aqi_w2_5" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Sat</label><input type="number" name="aqi_w2_6" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Sun</label><input type="number" name="aqi_w2_7" min="0" max="500" class="day-input"></div>
+            </div>
+          </div>
+          <div class="week-card">
+            <div class="week-title" name="w3-label">Week of --</div>
+            <div class="week-sub">Enter each day's AQI value (Leave blank if not reported)</div>
+            <div class="days-grid">
+              <div class="day-cell"><label>Mon</label><input type="number" name="aqi_w3_1" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Tue</label><input type="number" name="aqi_w3_2" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Wed</label><input type="number" name="aqi_w3_3" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Thu</label><input type="number" name="aqi_w3_4" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Fri</label><input type="number" name="aqi_w3_5" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Sat</label><input type="number" name="aqi_w3_6" min="0" max="500" class="day-input"></div>
+              <div class="day-cell"><label>Sun</label><input type="number" name="aqi_w3_7" min="0" max="500" class="day-input"></div>
+            </div>
+          </div>
+          <div>
+            <button type="button" class="btn btn-primary w-100 mb-2" onclick="predict()">
+              Calculate
+            </button>
+          </div>
+        </div>
+        <div class="right-container">
+          <div class="prediction-value-container" name="prediction-value-container">
+            <div class="prediction-value-title">Total Expected Respiratory Hospitalizations:</div>
+            <div class="prediction-value" name="prediction-value"></div>
+          </div>
+          <div class="loader" id="loader" style="display:none;">
+            <div class="block-loader">
+              <div class="block"></div>
+              <div class="block"></div>
+              <div class="block"></div>
+              <div class="block"></div>
+              <div class="block"></div>
+              <div class="block"></div>
+              <div class="block"></div>
+            </div>
+          </div>
+          <div class="prediction-llm-container" name="prediction-llm-container">
+            <div class="prediction-llm" name="prediction-llm"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      const dateInput = document.querySelector('[name="date-input"]');
+
+      dateInput.addEventListener('change', function() {
+        const d = new Date(this.value);
+        const monday = d => {
+          const day = d.getDay();
+          const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+          return new Date(d.setDate(diff));
+        };
+
+        const thisMonday  = monday(new Date(dateInput.value));
+        const lastMonday  = new Date(thisMonday); lastMonday.setDate(thisMonday.getDate() - 7);
+        const lag2Monday  = new Date(thisMonday); lag2Monday.setDate(thisMonday.getDate() - 14);
+
+        const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        document.querySelector('[name="w1-label"]').textContent = `Week of ${fmt(thisMonday)}`;
+        document.querySelector('[name="w2-label"]').textContent = `Week of ${fmt(lastMonday)}`;
+        document.querySelector('[name="w3-label"]').textContent = `Week of ${fmt(lag2Monday)}`;
+      });
+    </script>
+    <script>
+      function animateText(element, text, delay = 80) {
+          element.style.display = 'flex';
+          element.innerHTML = '';
+          const words = text.split(' ');
+          let i = 0;
+          const interval = setInterval(() => {
+              if (i < words.length) {
+                  element.innerHTML += (i === 0 ? '' : ' ') + words[i];
+                  i++;
+              } else {
+                  clearInterval(interval);
+              }
+          }, delay);
+      }
+      
+      async function predict() {
+        const date = document.querySelector('[name="date-input"]');
+
+        if (!date.value) {
+            alert('Please fill in fields before calculating.');
+            return;
+        }
+
+        const features = {
+          features: {
+            date: date.value,
+            aqi_w1_1: document.querySelector('[name="aqi_w1_1"]').value,
+            aqi_w1_2: document.querySelector('[name="aqi_w1_2"]').value,
+            aqi_w1_3: document.querySelector('[name="aqi_w1_3"]').value,
+            aqi_w1_4: document.querySelector('[name="aqi_w1_4"]').value,
+            aqi_w1_5: document.querySelector('[name="aqi_w1_5"]').value,
+            aqi_w1_6: document.querySelector('[name="aqi_w1_6"]').value,
+            aqi_w1_7: document.querySelector('[name="aqi_w1_7"]').value,
+            aqi_w2_1: document.querySelector('[name="aqi_w2_1"]').value,
+            aqi_w2_2: document.querySelector('[name="aqi_w2_2"]').value,
+            aqi_w2_3: document.querySelector('[name="aqi_w2_3"]').value,
+            aqi_w2_4: document.querySelector('[name="aqi_w2_4"]').value,
+            aqi_w2_5: document.querySelector('[name="aqi_w2_5"]').value,
+            aqi_w2_6: document.querySelector('[name="aqi_w2_6"]').value,
+            aqi_w2_7: document.querySelector('[name="aqi_w2_7"]').value,
+            aqi_w3_1: document.querySelector('[name="aqi_w3_1"]').value,
+            aqi_w3_2: document.querySelector('[name="aqi_w3_2"]').value,
+            aqi_w3_3: document.querySelector('[name="aqi_w3_3"]').value,
+            aqi_w3_4: document.querySelector('[name="aqi_w3_4"]').value,
+            aqi_w3_5: document.querySelector('[name="aqi_w3_5"]').value,
+            aqi_w3_6: document.querySelector('[name="aqi_w3_6"]').value,
+            aqi_w3_7: document.querySelector('[name="aqi_w3_7"]').value,
+          }
+        };
+
+        const blockLoader = document.querySelector('.block-loader');
+        const predictionValueContainer = document.querySelector('[name="prediction-value-container"]');
+        const predictionValue = document.querySelector('[name="prediction-value"]');
+
+        predictionValueContainer.style.display = 'none';
+        predictionValue.style.display = 'none';
+        predictionValue.innerHTML = '';
+
+        const llmBox = document.querySelector('[name="prediction-llm"]');
+        llmBox.style.display = 'none';
+        llmBox.innerHTML = '';
+        document.querySelector('[name="prediction-value"]').innerHTML = '';
+
+        document.getElementById('loader').style.display = 'flex';
+        blockLoader.classList.remove('active');
+        void blockLoader.offsetWidth;
+        blockLoader.classList.add('active');
+
+        const response = await fetch('/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(features)
+        });
+
+        const result = await response.json();
+
+        blockLoader.classList.remove('active');
+        document.getElementById('loader').style.display = 'none';
+
+        document.querySelector('[name="prediction-value"]').innerHTML = result.total_cases;
+
+        predictionValueContainer.style.display = 'flex';
+        predictionValue.style.display = 'flex';
+        llmBox.style.display = 'flex';
+        llmBox.style.justifyContent = 'left';
+        llmBox.style.alignItems = 'left';
+
+        animateText(document.querySelector('[name="prediction-llm"]'), result.llm_response);
+      }
+    </script>
+  </body>
+</html>
+
+<!--
+          <form>
+            <div id="map-container" class="mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div id="selected-display">No state selected</div>
+              </div>
+              <svg id="map-svg" viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+        
+            <input type="hidden" name="state" id="state-input" value="">
+          </form>
+
+    <script>
+      const width = 960;
+      const height = 600;
+    
+      const svg = d3.select("#map-svg")
+        .attr("viewBox", `0 0 ${width} ${height}`);
+    
+      const projection = d3.geoAlbersUsa()
+        .scale(1280)
+        .translate([width / 2, height / 2]);
+    
+      const path = d3.geoPath().projection(projection);
+    
+      // State FIPS code -> name lookup
+      const stateNames = {
+        "01":"Alabama","02":"Alaska","04":"Arizona","05":"Arkansas","06":"California",
+        "08":"Colorado","09":"Connecticut","10":"Delaware","12":"Florida","13":"Georgia",
+        "15":"Hawaii","16":"Idaho","17":"Illinois","18":"Indiana","19":"Iowa",
+        "20":"Kansas","21":"Kentucky","22":"Louisiana","23":"Maine","24":"Maryland",
+        "25":"Massachusetts","26":"Michigan","27":"Minnesota","28":"Mississippi","29":"Missouri",
+        "30":"Montana","31":"Nebraska","32":"Nevada","33":"New Hampshire","34":"New Jersey",
+        "35":"New Mexico","36":"New York","37":"North Carolina","38":"North Dakota","39":"Ohio",
+        "40":"Oklahoma","41":"Oregon","42":"Pennsylvania","44":"Rhode Island","45":"South Carolina",
+        "46":"South Dakota","47":"Tennessee","48":"Texas","49":"Utah","50":"Vermont",
+        "51":"Virginia","53":"Washington","54":"West Virginia","55":"Wisconsin","56":"Wyoming"
+      };
+    
+      let selectedState = null;
+    
+      // Fetch TopoJSON from CDN (no local file needed)
+      d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then(us => {
+        const states = topojson.feature(us, us.objects.states);
+    
+        svg.selectAll("path")
+          .data(states.features)
+          .join("path")
+            .attr("class", "state-path")
+            .attr("d", path)
+            .attr("data-state", d => stateNames[d.id] || "")
+            .on("click", function(event, d) {
+              const name = stateNames[d.id];
+              if (!name) return;
+    
+              // Deselect all, select clicked
+              svg.selectAll(".state-path").classed("selected", false);
+              d3.select(this).classed("selected", true);
+    
+              selectedState = name;
+              document.getElementById("state-input").value = name;
+              document.getElementById("selected-display").innerHTML = `Selected: <span>${name}</span>`;
+              document.getElementById("clear-btn").style.display = "inline-block";
+            });
+      });
+    
+    </script>
+-->>
