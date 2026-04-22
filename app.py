@@ -1,7 +1,7 @@
 import matplotlib
 matplotlib.use('Agg')
-
 from flask import Flask, request, jsonify, render_template
+import os
 import joblib
 import numpy as np
 import pandas as pd
@@ -214,4 +214,4 @@ def call_ollama(prompt):
         return "Request timed out. Please try again."
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=8000)
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get("PORT", 8000)))
